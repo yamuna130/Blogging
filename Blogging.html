@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blogging Platform</title>
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #007bf5;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      padding: 2rem;
+    }
+    button {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      margin: 0.5rem 0;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    input {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      width: 30%;
+    }
+    textarea {
+      width:50%;
+      height:50%;
+    }
+    .blog, .comment {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      margin: 1rem 0;
+      background-color: aqua;
+    }
+    .search-bar {
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const App = () => {
+      const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+      const [users, setUsers] = React.useState([]);
+      const [currentUser, setCurrentUser] = React.useState(null);
+      const [blogs, setBlogs] = React.useState([]);
+      const [searchQuery, setSearchQuery] = React.useState("");
+
+      // Auth State
+      const [authMode, setAuthMode] = React.useState("login"); // 'login' or 'signup'
+      const [authUsername, setAuthUsername] = React.useState("");
+      const [authPassword, setAuthPassword] = React.useState("");
+
+      // Blog Form State
+      const [newTitle, setNewTitle] = React.useState("");
+      const [newContent, setNewContent] = React.useState("");
+
+      // Handle Login/Signup
+      const handleAuth = () => {
+        if (authMode === "signup") {
+          if (users.some((user) => user.username === authUsername)) {
+            alert("Username already exists!");
+          } else {
+            setUsers([...users, { username: authUsername, password: authPassword }]);
+            alert("User registered successfully! Please login.");
+            setAuthMode("login");
+          }
+        } else {
+          const user = users.find(
+            (user) => user.username === authUsername && user.password === authPassword
+          );
+          if (user) {
+            setIsAuthenticated(true);
+            setCurrentUser(user);
+          } else {
+            alert("Invalid username or password!");
+          }
+        }
+        setAuthUsername("");
+        setAuthPassword("");
+      };
+
+      // Handle Blog Creation
+      const handleCreateBlog = () => {
+        if (newTitle && newContent) {
+          const newBlog = {
+            id: Date.now(),
+            title: newTitle,
+            content: newContent,
+            author: currentUser.username,
+            comments: [],
+          };
+          setBlogs([newBlog, ...blogs]);
+          setNewTitle("");
+          setNewContent("");
+        } else {
+          alert("Please fill in all fields.");
+        }
+      };
+
+      // Handle Blog Editing
+      const handleEditBlog = (id, updatedTitle, updatedContent) => {
+        setBlogs(
+          blogs.map((blog) =>
+            blog.id === id ? { ...blog, title: updatedTitle, content: updatedContent } : blog
+          )
+        );
+      };
+
+      // Handle Blog Deletion
+      const handleDeleteBlog = (id) => {
+        setBlogs(blogs.filter((blog) => blog.id !== id));
+      };
+
+      // Add Comment
+      const handleAddComment = (id, comment) => {
+        setBlogs(
+          blogs.map((blog) =>
+            blog.id === id ? { ...blog, comments: [...blog.comments, comment] } : blog
+          )
+        );
+      };
+
+      // Filter Blogs by Search
+      const filteredBlogs = blogs.filter((blog) =>
+        blog.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      return (
+        <div>
+          <header>
+            <h1>Blogging Platform</h1>
+            {isAuthenticated && <button onClick={() => setIsAuthenticated(false)}>Logout</button>}
+          </header>
+          <div className="container">
+            {!isAuthenticated ? (
+              <div>
+                <h2>{authMode === "login" ? "Login" : "Sign Up"}</h2>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                />
+                <button onClick={handleAuth}>{authMode === "login" ? "Login" : "Sign Up"}</button>
+                <button onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")}>
+                  Switch to {authMode === "login" ? "Sign Up" : "Login"}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h2>Create Blog</h2>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                />
+                <textarea
+                  placeholder="Content"
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                ></textarea>
+                <button onClick={handleCreateBlog}>Post</button>
+
+                <h2>Blog Posts</h2>
+                <input
+                  type="text"
+                  className="search-bar"
+                  placeholder="Search blogs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {filteredBlogs.length > 0 ? (
+                  filteredBlogs.map((blog) => (
+                    <div className="blog" key={blog.id}>
+                      <h3>{blog.title}</h3>
+                      <p>{blog.content}</p>
+                      <p>Author: {blog.author}</p>
+                      <button onClick={() => handleDeleteBlog(blog.id)}>Delete</button>
+                      <h4>Comments</h4>
+                      {blog.comments.map((comment, index) => (
+                        <div className="comment" key={index}>
+                          <p>{comment}</p>
+                        </div>
+                      ))}
+                      <textarea
+                        placeholder="Add a comment"
+                        onBlur={(e) => handleAddComment(blog.id, e.target.value)}
+                      ></textarea>
+                    </div>
+                  ))
+                ) : (
+                  <p>No blogs found. Create one!</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>
